@@ -3,15 +3,16 @@ import os
 import glob
 import numpy as pd
 import pandas as pd
-import plotly.graph_objects as go
 import plotly.express as px
-
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 ANIOS = ['2016', '2017', '2018', '2019', '2020', '2021']
 DELITOS = ['Robo', 'Hurto', 'Lesiones', 'Homicidio']
+DIAS = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo']
+FRANJAS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23']
 PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)) + '/../data', '*.csv')
 FILENAMES = glob.glob(PATH)
-
 
 def save_csv(dataframe: pd.DataFrame, filename: str) -> None:
     PATH_FILENAME = os.path.dirname(os.path.abspath(__file__)) + f'/../{filename}'
@@ -82,28 +83,78 @@ def maps(df: pd.DataFrame):
                 landcolor = 'rgb(217, 217, 217)',
             )
         )
-
     fig.show()
 
+def normalize(cant: int, df: pd.DataFrame) -> float:
+    return (cant / len(df.index))*100
 
 def rose_df(df: pd.DataFrame) -> pd.DataFrame:
     df_plot = pd.DataFrame()
+    df_plot_dia = pd.DataFrame()
     for anio in ANIOS:
+        # FILTRO DATASET POR TIPO DELITO
+        df_anio = df[(df['anio'] == int(anio))]
         for delito in DELITOS:
             df_filtrado = df[(df['anio'] == int(anio)) & df['tipo_delito'].str.contains(delito, na=False)]
             print(f'filtramos delito {delito} por año {anio}')
             #print(df_filtrado)
-            tmp = pd.DataFrame([{'anio': anio, 'tipo_delito': delito, 'cantidad': len(df_filtrado.index)}])
+            tmp = pd.DataFrame([{'anio': anio, 'tipo_delito': delito, 'cantidad': normalize(len(df_filtrado.index), df_anio)}])
             df_plot = pd.concat([df_plot.reset_index(drop=True), tmp])
-    # print(df_plot)
+        # print(df_plot)
 
+
+        # FILTRO DATASET POR DIA
+        for dia in DIAS:
+            df_filtrado_dia = df[(df['anio'] == int(anio)) & df['dia'].str.contains(dia, na=False)]
+            print(f'filtramos dia {dia} por año {anio}')
+            #print(df_filtrado_dia)
+            tmp_dia = pd.DataFrame([{'anio': anio, 'dia': dia, 'cantidad': normalize(len(df_filtrado_dia.index), df_anio)}])
+            df_plot_dia = pd.concat([df_plot_dia.reset_index(drop=True), tmp_dia])
+        #print(df_plot_dia)
+
+    return df_plot, df_plot_dia
+
+def bar_plot_df(df: pd.DataFrame) -> pd.DataFrame:
+    df_plot = pd.DataFrame()
+    tmp = {}
+    tmp_franjas = []
+    for franja in FRANJAS:
+        for anio in ANIOS:
+            print(f'filtramos franja {franja} por año {anio}')
+            df_anio = df[(df['anio'] == int(anio))]
+            df_filtrado = df[(df['anio'] == int(anio)) & (df['franja_horaria'] == franja)]
+            tmp_franjas.append({'anio': anio, 'franja': franja, 'delitos': normalize(len(df_filtrado.index), df_anio)})
+            #print(tmp_franjas)
+    print('---------------------------------------------\n\n')
+    print(tmp_franjas)
+    
+    df_plot = pd.DataFrame(tmp_franjas)
+    print(df_plot)
     return df_plot
 
-def rose_plot(df:pd.DataFrame) -> pd.DataFrame:
+def bar_plot(df: pd.DataFrame) -> None:
+    fig = px.bar(df, x="franja", y="delitos", facet_col='anio', facet_col_wrap=3,
+                 text_auto='.2s',
+                title='Evolución de delitos pre y post pandemia')
+    
+    fig.update_traces(textfont_size=12, textangle=0, textposition="outside", cliponaxis=False)
+    
+    fig.show()
+
+def rose_plot(df:pd.DataFrame, graph: str) -> None:
     fig = px.bar_polar(df, r="cantidad", theta="anio",
                    title='Evolución de patrones delictivos en CABA [2016-2021]',
-                   color="tipo_delito", template="plotly_dark",
-                   color_discrete_sequence= px.colors.sequential.Agsunset)
+                   color="tipo_delito" if graph == "delito" else "dia", #template="plotly_dark",
+                   color_discrete_sequence= px.colors.sequential.Oryel_r)
+
+    fig.update_layout(
+        font_size=16,
+        legend_font_size=16,
+        polar_radialaxis_ticksuffix='%',
+        #polar = dict(# setting parameters for the second plot would be polar2=dict(...)
+        #sector = [120,240],)
+        )
+
     fig.show()
 
 if __name__ == '__main__':
@@ -113,6 +164,9 @@ if __name__ == '__main__':
     print(f'Total rows: {len(df)}')
     print(df.groupby(by=['dia']).size().reset_index(name='delitos'))
     show_data(df)
-    df_rose = rose_df(df)
-    rose_plot(df_rose)
+    df_rose_delito, df_rose_dia = rose_df(df)
+    rose_plot(df_rose_delito, 'delito')
+    rose_plot(df_rose_dia, 'dia')
+    ts_df = bar_plot_df(df)
+    bar_plot(ts_df)
     

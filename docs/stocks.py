@@ -1,5 +1,7 @@
 import plotly.express as px
 df = px.data.stocks()
+print(df)
+print(df.dtypes)
 fig = px.line(df, x="date", y=df.columns,
               hover_data={"date": "|%B %d, %Y"},
               title='custom tick labels with ticklabelmode="period"')
