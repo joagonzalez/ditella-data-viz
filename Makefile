@@ -5,4 +5,4 @@ webserver:
 	streamlit run run.py --server.maxMessageSize 1024
 
 build:
-	docker build -t registry.qwerty.com.ar/ditella-dataviz:1.0.0 .
+	docker build -t registry.qwerty.com.ar/ditella-dataviz:1.0.1 .

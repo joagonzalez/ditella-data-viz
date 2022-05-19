@@ -1,7 +1,13 @@
 from click import option
-from src.application import FILENAMES
+from src.application import FILENAMES, rose_plot
 from src.application import load_datasets
-
+from src.application import fig_rose_delito as fig_delitos_rose
+from src.application import fig_rose_dia as fig_dia_rose
+from src.application import fig_bar as fig_barplot
+from src.application import fig_hor_bar as fig_horizontal_barplot
+from src.application import fig_n as fig_barrios_1
+from src.application import fig2_n as fig_barrios_2
+  
 import streamlit as st
 import plotly.express as px
 
@@ -130,6 +136,15 @@ st.plotly_chart(fig_crimes_hour)
 st.plotly_chart(fig_crimes_year)
 st.plotly_chart(fig_crimes_type)
 st.plotly_chart(fig_crimes_neighborhood)
+
+st.markdown('---')
+
+st.plotly_chart(fig_delitos_rose)
+st.plotly_chart(fig_dia_rose)
+st.plotly_chart(fig_barplot)
+st.plotly_chart(fig_horizontal_barplot)
+st.plotly_chart(fig_barrios_1)
+st.plotly_chart(fig_barrios_2)
 
 
 # HIDE FOOTER

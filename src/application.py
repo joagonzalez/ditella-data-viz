@@ -1,6 +1,8 @@
 from operator import index
 import os
 import glob
+from statistics import mode
+from matplotlib.pyplot import xlabel
 import numpy as pd
 import pandas as pd
 import plotly.express as px
@@ -11,6 +13,7 @@ ANIOS = ['2016', '2017', '2018', '2019', '2020', '2021']
 DELITOS = ['Robo', 'Hurto', 'Lesiones', 'Homicidio']
 DIAS = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo']
 FRANJAS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23']
+BARRIOS = ['Palermo', '']
 PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)) + '/../data', '*.csv')
 FILENAMES = glob.glob(PATH)
 
@@ -132,30 +135,124 @@ def bar_plot_df(df: pd.DataFrame) -> pd.DataFrame:
     print(df_plot)
     return df_plot
 
+def bar_hor_df(df: pd.DataFrame) -> pd.DataFrame:
+    total = len(df.index)
+    print(f'el dataset tiene {total} registros')
+    
+    crimes_per_neighborhood = df.groupby(by=['barrio'], as_index=False).size().sort_values('size')
+    crimes_per_neighborhood['tasa'] = crimes_per_neighborhood['size'].mul(1/total)
+
+    print(crimes_per_neighborhood)
+    return crimes_per_neighborhood[20:]
+
 def bar_plot(df: pd.DataFrame) -> None:
-    fig = px.bar(df, x="franja", y="delitos", facet_col='anio', facet_col_wrap=3,
-                 text_auto='.2s',
-                title='Evolución de delitos pre y post pandemia')
+    fig = px.bar(
+        df, 
+        x="franja", 
+        y="delitos", 
+        facet_col='anio', 
+        facet_col_wrap=3,
+        text_auto='.2s',
+        labels={'anio': 'Año', 'franja': 'Franja horaria [0-23]hs', 'delitos': 'Cantidad de delitos'},
+        title='Distribución horaria de delitos entre los años 2016-2021 @CABA'
+    )
     
-    fig.update_traces(textfont_size=12, textangle=0, textposition="outside", cliponaxis=False)
+    fig.update_traces(
+        textfont_size=12, 
+        textangle=0, 
+        textposition="outside", 
+        cliponaxis=False
+    )
     
-    fig.show()
+    return fig
 
-def rose_plot(df:pd.DataFrame, graph: str) -> None:
-    fig = px.bar_polar(df, r="cantidad", theta="anio",
-                   title='Evolución de patrones delictivos en CABA [2016-2021]',
-                   color="tipo_delito" if graph == "delito" else "dia", #template="plotly_dark",
-                   color_discrete_sequence= px.colors.sequential.Oryel_r)
+def rose_plot(df:pd.DataFrame, graph: str) -> px.bar_polar:
+    title_delito = 'Distribución temporal de tipos de delito entre los años 2016-2021 @CABA'
+    title_dia = 'Distribución temporal de delitos por día de la semana entre los años 2016-2021 @CABA'
+    fig = px.bar_polar(
+        df, r="cantidad", 
+        theta="anio",
+        title= title_delito if graph == "delito" else title_dia,
+        color="tipo_delito" if graph == "delito" else "dia", #template="plotly_dark",
+        color_discrete_sequence= px.colors.sequential.Oryel_r
+    )
+    
+    return fig
 
-    fig.update_layout(
-        font_size=16,
-        legend_font_size=16,
-        polar_radialaxis_ticksuffix='%',
-        #polar = dict(# setting parameters for the second plot would be polar2=dict(...)
-        #sector = [120,240],)
-        )
+def bar_hor_plot(df: pd.DataFrame) -> px.bar:
+    fig = px.bar(
+        df,
+        x='tasa',
+        y=df['barrio'],
+        labels={'tasa':'Tasa de delitos comentidos [%]',
+                'barrio': 'Barrios de la Ciudad de Buenos Aires'
+                },
+        orientation='h',
+        hover_data=['tasa'], 
+        color='tasa',
+        color_continuous_scale=px.colors.sequential.YlOrRd,
+        color_discrete_sequence= px.colors.sequential.Jet,
+        #color_discrete_sequence=["#0083B8"] * len(df),
+        title=f'Tasa de delitos espacial acumulada entre los años 2016-2021 @CABA',
+        template='plotly_white',
+    ) 
 
-    fig.show()
+    fig.update_traces(
+        textfont_size=12, 
+        textangle=0, 
+        textposition="outside", 
+        cliponaxis=False
+    )
+    
+    return fig
+
+def neighborhood_distribution(df: pd.DataFrame) -> pd.DataFrame:
+    df_barrio = df.groupby(by=['barrio', 'anio'], as_index=False).size()#size().sort_values().reset_index(name='delitos')
+    
+    df_barrio = df_barrio[
+        df_barrio['barrio'].str.contains('Boca', na=False) |
+        df_barrio['barrio'].str.contains('Pompeya', na=False) |
+        df_barrio['barrio'].str.contains('Recoleta', na=False) |
+        df_barrio['barrio'].str.contains('Retiro', na=False) |
+        df_barrio['barrio'].str.contains('Caballito', na=False) |
+        df_barrio['barrio'].str.contains('Flores', na=False) |
+        df_barrio['barrio'].str.contains('stitución', na=False) |
+        df_barrio['barrio'].str.contains('Palermo', na=False)
+    ]
+
+    df_anios = df.groupby(by=['anio'], as_index=False).size()
+    print(df_barrio[df_barrio['barrio'].str.contains('Boca', na=False)])
+    print(df_anios['anio'][0])
+    print(df_barrio)
+
+    fig = px.area(df_barrio, 
+        x='anio', 
+        y='size', 
+        facet_col='barrio',
+        facet_col_wrap=3,
+        title=f'Evolución en la ocurrencia de delitos en barrios principales durante los años 2016-2021 @CABA',
+        labels={'anio': 'Años', 'size': 'Cantidad de delitos'}
+    )
+
+    fig2 = px.bar(df_barrio, 
+        x='anio', 
+        y='size', 
+        color='barrio',
+        barmode='group',
+        title=f'Evolución en la ocurrencia de delitos en barrios principales durante los años 2016-2021 @CABA',
+        labels={'anio': 'Años', 'size': 'Cantidad de delitos', 'barrio': 'Barrios CABA'},
+        text_auto=True
+    )
+    
+    fig2.update_traces(
+        textfont_size=30, 
+        #textangle=0, 
+        #extposition="outside", 
+        cliponaxis=False
+    )
+    
+    return fig, fig2
+   
 
 if __name__ == '__main__':
     df = load_datasets(FILENAMES)
@@ -164,9 +261,32 @@ if __name__ == '__main__':
     print(f'Total rows: {len(df)}')
     print(df.groupby(by=['dia']).size().reset_index(name='delitos'))
     show_data(df)
-    df_rose_delito, df_rose_dia = rose_df(df)
-    rose_plot(df_rose_delito, 'delito')
-    rose_plot(df_rose_dia, 'dia')
-    ts_df = bar_plot_df(df)
-    bar_plot(ts_df)
     
+    df_rose_delito, df_rose_dia = rose_df(df)
+    df_bar = bar_plot_df(df)
+    df_hor_bar = bar_hor_df(df)
+    
+    print(df_hor_bar)
+    
+    fig_rose_delito = rose_plot(df_rose_delito, 'delito')
+    fig_rose_dia = rose_plot(df_rose_dia, 'dia')
+    fig_bar = bar_plot(df_bar)
+    fig_hor_bar = bar_hor_plot(df_hor_bar)
+    fig_n, fig2_n = neighborhood_distribution(df)
+    
+    fig_rose_delito.show()
+    fig_rose_dia.show()
+    fig_bar.show()
+    fig_hor_bar.show()
+    fig_n.show()
+    fig2_n.show()
+else:
+    df = load_datasets(FILENAMES)
+    df_rose_delito, df_rose_dia = rose_df(df)
+    df_bar = bar_plot_df(df)
+    df_hor_bar = bar_hor_df(df)
+    fig_rose_delito = rose_plot(df_rose_delito, 'delito')
+    fig_rose_dia = rose_plot(df_rose_dia, 'dia')
+    fig_bar = bar_plot(df_bar)
+    fig_hor_bar = bar_hor_plot(df_hor_bar)
+    fig_n, fig2_n = neighborhood_distribution(df)
