@@ -142,12 +142,12 @@ def rose_plot(df:pd.DataFrame, graph: str) -> px.bar_polar:
                 }
     )
 
-    #update_layout(
-    #    font=dict(
-    #        family="Courier New, monospace",
-            #size=18,
-    #    )
-    #)
+    fig.update_layout(
+        font=dict(
+            family="Courier New, monospace",
+            size=22,
+        )
+    )
     
     return fig
 
