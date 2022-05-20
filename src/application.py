@@ -49,45 +49,6 @@ def show_data(df: pd.DataFrame) -> None:
     print('2016 to 2021')
     print(df.iloc[1:10])
 
-def maps(df: pd.DataFrame):
-
-    df['text'] = df['tipo_delito']
-    limits = [(0,2),(3,10),(11,20),(21,50),(50,3000),(3100,5100),(5101,7100),(7101,10100),(20100,22101)]
-    colors = ["royalblue","crimson","lightseagreen","orange","lightgrey"]
-    
-    cities = []
-    scale = 5000
-
-    fig = go.Figure()
-
-    for i in range(len(limits)):
-        lim = limits[i]
-        df_sub = df[lim[0]:lim[1]]
-        fig.add_trace(go.Scattergeo(
-            locations=['Argentina'],
-            locationmode = 'country names',
-            lon = df_sub['long'],
-            lat = df_sub['lat'],
-            text = df_sub['text'],
-            marker = dict(
-                size = 5,
-                color = colors[i%5],
-                line_color='rgb(40,40,40)',
-                line_width=0.5,
-                sizemode = 'area'
-            ),
-            name = 'crimes'))
-
-    fig.update_layout(
-            title_text = '2016-2021 AR city crimes<br>(Click legend to toggle traces)',
-            showlegend = True,
-            geo = dict(
-                scope = 'south america',
-                landcolor = 'rgb(217, 217, 217)',
-            )
-        )
-    fig.show()
-
 def normalize(cant: int, df: pd.DataFrame) -> float:
     return (cant / len(df.index))*100
 
@@ -153,16 +114,16 @@ def bar_plot(df: pd.DataFrame) -> None:
         facet_col='anio', 
         facet_col_wrap=3,
         text_auto='.2s',
-        labels={'anio': 'Año', 'franja': 'Franja horaria [0-23]hs', 'delitos': 'Cantidad de delitos'},
+        labels={'anio': 'Año', 'franja': 'Franja horaria [0-23]hs', 'delitos': 'Tasa de delitos [%]'},
         title='Distribución horaria de delitos entre los años 2016-2021 @CABA'
     )
     
-    fig.update_traces(
-        textfont_size=12, 
-        textangle=0, 
-        textposition="outside", 
-        cliponaxis=False
-    )
+    #fig.update_layout(
+    #    font=dict(
+    #        family="Courier New, monospace",
+    #        #size=28,
+    #    )
+    #)
     
     return fig
 
@@ -174,8 +135,19 @@ def rose_plot(df:pd.DataFrame, graph: str) -> px.bar_polar:
         theta="anio",
         title= title_delito if graph == "delito" else title_dia,
         color="tipo_delito" if graph == "delito" else "dia", #template="plotly_dark",
-        color_discrete_sequence= px.colors.sequential.Oryel_r
+        color_discrete_sequence= px.colors.sequential.Oryel_r,
+        labels={'cantidad':'Tasa de delitos comentidos [%]',
+                'tipo_delito': 'Tipo de delito',
+                'dia': 'Dia de la semana del delito'
+                }
     )
+
+    #update_layout(
+    #    font=dict(
+    #        family="Courier New, monospace",
+            #size=18,
+    #    )
+    #)
     
     return fig
 
@@ -184,7 +156,7 @@ def bar_hor_plot(df: pd.DataFrame) -> px.bar:
         df,
         x='tasa',
         y=df['barrio'],
-        labels={'tasa':'Tasa de delitos comentidos [%]',
+        labels={'tasa':'Tasa de delitos comentidos 2016-2021 [%]',
                 'barrio': 'Barrios de la Ciudad de Buenos Aires'
                 },
         orientation='h',
@@ -196,6 +168,13 @@ def bar_hor_plot(df: pd.DataFrame) -> px.bar:
         title=f'Tasa de delitos espacial acumulada entre los años 2016-2021 @CABA',
         template='plotly_white',
     ) 
+
+    #fig.update_layout(
+    #    font=dict(
+    #        family="Courier New, monospace",
+            #size=28,
+    #    )
+    #)
 
     fig.update_traces(
         textfont_size=12, 
@@ -241,20 +220,49 @@ def neighborhood_distribution(df: pd.DataFrame) -> pd.DataFrame:
         barmode='group',
         title=f'Evolución en la ocurrencia de delitos en barrios principales durante los años 2016-2021 @CABA',
         labels={'anio': 'Años', 'size': 'Cantidad de delitos', 'barrio': 'Barrios CABA'},
-        text_auto=True
+        text_auto=True,
     )
-    
+
+
+    #fig.update_layout(
+        #title="Plot Title",
+        #xaxis_title="X Axis Title",
+        #yaxis_title="Y Axis Title",
+        #legend_title="Legend Title",
+    #    font=dict(
+    #        family="Courier New, monospace",
+            #size=18,
+            #color="RebeccaPurple"
+    #    )
+    #)
+
     fig2.update_traces(
         textfont_size=30, 
         #textangle=0, 
         #extposition="outside", 
         cliponaxis=False
     )
+
+    #fig2.update_layout(
+        #title="Plot Title",
+        #xaxis_title="X Axis Title",
+        #yaxis_title="Y Axis Title",
+        #legend_title="Legend Title",
+        #autosize=False,
+        #width=2048,
+        #height=1536,
+        #font=dict(
+            #family="Courier New, monospace",
+            #size=28,
+            #color="RebeccaPurple"
+        #)
+    #)
     
     return fig, fig2
    
 
 if __name__ == '__main__':
+    # PARA REPRODUCIR IMAGENES DE INFORGRAFIA DESCOMENTAR .update_layout donde se especifica font y size
     df = load_datasets(FILENAMES)
     # save_csv(df, 'legacy_2016_2021.csv')
     print(df.dtypes)
